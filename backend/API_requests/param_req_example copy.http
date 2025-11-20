@@ -1,0 +1,8 @@
+### Titles by a specific author (param = author name)
+POST http://localhost:6001/query
+Content-Type: application/json
+
+{
+  "sql": "SELECT title FROM books WHERE stock_qty > $2 AND author = $1 ORDER BY title;",
+  "params": ["test2", 0]
+}
