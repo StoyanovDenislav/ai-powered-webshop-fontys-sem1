@@ -1,0 +1,8 @@
+### Try a classic injection payload as a param
+POST http://localhost:6001/query
+Content-Type: application/json
+
+{
+  "sql": "SELECT * FROM books WHERE title = $1 ORDER BY title;",
+  "params": ["' OR 1=1--"]
+}

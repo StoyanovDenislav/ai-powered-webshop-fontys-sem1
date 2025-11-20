@@ -1,0 +1,6 @@
+curl -X POST http://localhost:6001/query \
+  -H "Content-Type: application/json" \
+  -d '{
+    "sql": "SELECT * FROM books WHERE stock_qty > 0 ORDER BY title;",
+    "params": []
+  }'
