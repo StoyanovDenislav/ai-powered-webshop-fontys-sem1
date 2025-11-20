@@ -1,54 +1,61 @@
-const express = require('express');
+const express = require("express");
 
 const app = express();
 const PORT = process.env.PORT || 6001;
 
+const database = require("./database");
+
 app.use(express.json());
 
-// Simple in-memory "database" for demo purposes
+// Generic SQL execution endpoint
+app.post("/query", async (req, res, next) => {
+  try {
+    const { sql, params = [] } = req.body || {};
 
-//NOTE ALL CODE BELOW IS USED TO TEST IF EXPRESS IS WORKING, NOT REAL CODE!!!!!!!!!!!!!!!
-let books = [
-	{ id: 1, title: 'The Pragmatic Programmer', author: 'Andrew Hunt' },
-	{ id: 2, title: 'Clean Code', author: 'Robert C. Martin' },
-];
+    if (typeof sql !== "string" || sql.trim() === "") {
+      return res.status(400).json({ error: "sql must be a non-empty string" });
+    }
+    if (!Array.isArray(params)) {
+      return res.status(400).json({ error: "params must be an array" });
+    }
 
-app.get('/', (req, res) => {
-	res.json({ message: 'Welcome to the Bookstore API' });
+    const rows = await database.query(sql, params);
+    return res.json({ rows });
+  } catch (err) {
+    return next(err);
+  }
 });
 
-app.get('/health', (req, res) => {
-	res.json({ status: 'ok', uptime: process.uptime() });
-});
+/*
+// Sample parameterized query
+app.get("/db-sample/:id", async (req, res, next) => {
+  try {
+    const id = Number(req.params.id);
+    if (Number.isNaN(id)) {
+      return res.status(400).json({ error: "id must be a number" });
+    }
 
-app.get('/books', (req, res) => {
-	res.json(books);
-});
-
-app.get('/books/:id', (req, res) => {
-	const id = Number(req.params.id);
-	const book = books.find((b) => b.id === id);
-	if (!book) return res.status(404).json({ error: 'Book not found' });
-	res.json(book);
-});
-
-app.post('/books', (req, res) => {
-	const { title, author } = req.body;
-	if (!title || !author) {
-		return res.status(400).json({ error: 'title and author are required' });
-	}
-	const id = books.length ? Math.max(...books.map((b) => b.id)) + 1 : 1;
-	const newBook = { id, title, author };
-	books.push(newBook);
-	res.status(201).json(newBook);
-});
+    // Using positional params to bind safely
+    const rows = await database.query("select $1::int as id", [id]);
+    return res.json({ id: rows?.[0]?.id ?? null });
+  } catch (err) {
+    return next(err);
+  }
+}); */
 
 // Basic error handler
 app.use((err, req, res, next) => {
-	console.error(err);
-	res.status(500).json({ error: 'Internal server error' });
+  console.error(err);
+  res.status(500).json({ error: "Internal server error" });
 });
 
 app.listen(PORT, () => {
-	console.log(`Bookstore API listening on http://localhost:${PORT}`);
+  database.ping().then((isConnected) => {
+    if (isConnected) {
+      console.log("✅ Database connection successful");
+    } else {
+      console.log("❌ Database connection failed");
+    }
+  });
+  console.log(`Bookstore API listening on http://localhost:${PORT}`);
 });
