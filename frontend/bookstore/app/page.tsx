@@ -1,18 +1,7 @@
 import Image from "next/image";
-import footerContent from "@/content/footer.json";
-import headerContent from "@/content/header.json";
 import { Header } from "./components/Header";
-
-type ApiBookRow = {
-  id: number;
-  title: string;
-  author: string;
-  description?: string;
-  price?: string;
-  genres?: string[];
-  stock_qty?: number;
-  created_at?: string;
-};
+import headerData from "../src/content/header.json";
+import footerData from "../src/content/footer.json";
 
 type Book = {
   id: number | string;
@@ -25,14 +14,10 @@ type Book = {
   description?: string;
 };
 
-type HeaderContent = {
-  navItems: string[];
-  primaryFilters: string[];
-  genreFilters: string[];
+type FooterData = {
+  rights: string;
+  links: { label: string; href: string }[];
 };
-
-const { navItems, primaryFilters, genreFilters } =
-  headerContent as HeaderContent;
 
 const FALLBACK_BOOKS: Book[] = [
   {
@@ -111,74 +96,13 @@ const FALLBACK_BOOKS: Book[] = [
   },
 ];
 
-const BACKEND_URL =
-  process.env.BACKEND_API_URL?.replace(/\/$/, "") || "http://localhost:6001";
-
-async function fetchBooks(): Promise<Book[]> {
-  try {
-    const response = await fetch(`${BACKEND_URL}/query`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        sql: "SELECT * FROM books WHERE stock_qty > 0 ORDER BY title;",
-        params: [],
-      }),
-      cache: "no-store",
-    });
-
-    if (!response.ok) {
-      throw new Error(`Backend responded with ${response.status}`);
-    }
-
-    const data = (await response.json()) as { rows?: ApiBookRow[] };
-    const rows = data.rows ?? [];
-
-    if (!rows.length) {
-      return FALLBACK_BOOKS;
-    }
-
-    return rows.map((row, index) => {
-      const cover =
-        FALLBACK_BOOKS[index % FALLBACK_BOOKS.length]?.cover ??
-        FALLBACK_BOOKS[0].cover;
-      const genres = row.genres ?? [];
-      return {
-        id: row.id,
-        title: row.title,
-        author: row.author,
-        description: row.description,
-        price: formatPrice(row.price),
-        genre: genres[0] ?? "Featured",
-        cover,
-        badge: genres[1] ?? undefined,
-      };
-    });
-  } catch (error) {
-    console.error("Failed to load books from backend:", error);
-    return FALLBACK_BOOKS;
-  }
-}
-
-function formatPrice(value?: string) {
-  if (!value) return "€0.00";
-  const parsed = Number(value);
-  if (Number.isNaN(parsed)) return `€${value}`;
-  return new Intl.NumberFormat("de-DE", {
-    style: "currency",
-    currency: "EUR",
-    minimumFractionDigits: 2,
-  }).format(parsed);
-}
-
-export default async function Home() {
-  const books = await fetchBooks();
+export default function Home() {
+  const books = FALLBACK_BOOKS;
+  const { navItems, primaryFilters, genreFilters } = headerData;
   return (
     <main className="min-h-screen bg-transparent px-4 py-10 sm:px-8 lg:px-10">
-      <div className="cards-shadow mx-auto flex w-full max-w-6xl flex-col gap-10 rounded-[32px] border border-[#eadcca]/80 bg-white/90 p-6 backdrop-blur-sm sm:p-10">
+      <div className="cards-shadow mx-auto flex w-full max-w-6xl flex-col gap-10 rounded-4xl border border-[#eadcca]/80 bg-white/90 p-6 backdrop-blur-sm sm:p-10">
         <Header navItems={navItems} primaryFilters={primaryFilters} />
-
         <section className="space-y-6">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
@@ -209,8 +133,7 @@ export default async function Home() {
             ))}
           </div>
         </section>
-
-        <Footer />
+        <Footer footerData={footerData} />
       </div>
     </main>
   );
@@ -218,7 +141,7 @@ export default async function Home() {
 
 function BookCard({ book }: { book: Book }) {
   return (
-    <article className="flex flex-col gap-4 rounded-[26px] border border-[#efe4d8] bg-white/90 p-4 shadow-[0_20px_45px_rgba(49,29,4,0.05)] transition hover:-translate-y-1.5 hover:shadow-[0_25px_60px_rgba(49,29,4,0.08)]">
+    <article className="flex flex-col gap-4 rounded-2xl border border-[#efe4d8] bg-white/90 p-4 shadow-[0_20px_45px_rgba(49,29,4,0.05)] transition hover:-translate-y-1.5 hover:shadow-[0_25px_60px_rgba(49,29,4,0.08)]">
       <div className="relative overflow-hidden rounded-2xl bg-[#f5ede4]">
         <Image
           src={book.cover}
@@ -255,24 +178,13 @@ function BookCard({ book }: { book: Book }) {
   );
 }
 
-type FooterContent = {
-  rights: string;
-  links: { label: string; href: string }[];
-};
-
-function Footer() {
-  const { rights, links } = footerContent as FooterContent;
-  const year = new Date().getFullYear();
+function Footer({ footerData }: { footerData: FooterData }) {
   return (
     <footer className="flex flex-col items-center gap-2 border-t border-[#efe4d8] pt-8 text-center text-sm text-[#6a5a4c] sm:flex-row sm:justify-between">
-      <p>
-        © {year} {rights}
-      </p>
+      <p>© {new Date().getFullYear()} {footerData.rights}</p>
       <div className="flex gap-4 text-xs uppercase tracking-[0.4em] text-[#a38773]">
-        {links.map((link) => (
-          <a key={link.label} href={link.href} className="hover:text-[#6c4c32]">
-            {link.label}
-          </a>
+        {footerData.links.map((link) => (
+          <a key={link.label} href={link.href}>{link.label}</a>
         ))}
       </div>
     </footer>
