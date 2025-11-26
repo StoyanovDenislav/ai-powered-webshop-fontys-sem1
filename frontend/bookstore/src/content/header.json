@@ -1,0 +1,21 @@
+{
+  "navItems": ["Home", "Story", "Theme", "About"],
+  "primaryFilters": [
+    "Soul/ fiction",
+    "Mystery",
+    "Memoirs",
+    "Fantasy",
+    "History",
+    "Poetry"
+  ],
+  "genreFilters": [
+    "Action",
+    "Literary",
+    "Biography",
+    "Nature",
+    "Hobby",
+    "Romance",
+    "Essays"
+  ]
+}
+
