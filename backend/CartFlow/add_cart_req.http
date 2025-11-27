@@ -1,0 +1,43 @@
+### Retrieves all items in cart
+POST http://localhost:6001/query
+Content-Type: application/json
+
+{
+  "sql": "SELECT * FROM cart_items ORDER BY id;"
+}
+
+
+
+### Adds item in cart 
+POST http://localhost:6001/query
+Content-Type: application/json
+
+{
+  "sql": "INSERT INTO cart_items (user_id, book_id, quantity) VALUES ($1, $2, $3);",
+  "params": [2, 1, 1]
+}
+// Params: user id, book id, quantity
+
+
+
+### Modifies quantity of item in cart
+POST http://localhost:6001/query
+Content-Type: application/json
+
+{
+  "sql": "UPDATE cart_items SET quantity = quantity + $3 WHERE user_id = $1 AND book_id = $2 AND quantity + $3 >= 1;",
+  "params": [2, 1, -1] 
+}
+// Params: user id, book id, quantity modification (can be minus as well)
+
+
+
+### Removes/deletes item from cart
+POST http://localhost:6001/query
+Content-Type: application/json
+
+{
+  "sql": "DELETE FROM cart_items WHERE user_id = $1 AND book_id = $2;",
+  "params": [2, 1] 
+}
+// Params: user id, book id
