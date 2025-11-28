@@ -48,3 +48,23 @@ Content-Type: application/json
   "params": [2, 1] 
 }
 // Params: user id, book id
+
+// Books stuff
+### Retrieve all books
+POST http://localhost:6001/query
+Content-Type: application/json
+
+{
+  "sql": "SELECT * FROM books ORDER BY id;"
+}
+
+
+### Update stock books
+POST http://localhost:6001/query
+Content-Type: application/json
+
+{
+  "sql": "UPDATE cart_items SET quantity = quantity + $2 WHERE book_id = $1 AND quantity + $2 >= 0;",
+  "params": [1,10] 
+}
+// bookID, stock
