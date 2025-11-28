@@ -25,7 +25,7 @@ app.get("/genres", async (req, res, next) => {
       "SELECT DISTINCT UNNEST(genres) as genre FROM books WHERE stock_qty > 0 ORDER BY genre",
       []
     );
-    const genres = rows.map(row => row.genre);
+    const genres = rows.map((row) => row.genre);
     return res.json({ genres });
   } catch (err) {
     return next(err);
@@ -49,9 +49,11 @@ app.get("/books", async (req, res, next) => {
 app.get("/books/filter", async (req, res, next) => {
   try {
     const genre = req.query.genre;
-    
+
     if (!genre || typeof genre !== "string") {
-      return res.status(400).json({ error: "genre query parameter is required" });
+      return res
+        .status(400)
+        .json({ error: "genre query parameter is required" });
     }
 
     const rows = await database.query(
