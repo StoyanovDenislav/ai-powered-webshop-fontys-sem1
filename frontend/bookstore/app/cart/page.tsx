@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { HeaderWithAuth } from "../components/HeaderWithAuth";
+import { OrderConfirmation } from "../components/OrderConfirmation";
 import { useCart } from "../context/CartContext";
 import { useAuth } from "../context/AuthContext";
 import headerData from "../../src/content/header.json";
@@ -40,6 +41,14 @@ export default function CartPage() {
   const [showPaymentForm, setShowPaymentForm] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
   const [orderId, setOrderId] = useState<number | null>(null);
+  const [orderDetails, setOrderDetails] = useState<any>(null);
+  const [completedOrder, setCompletedOrder] = useState<{
+    items: any[];
+    subtotal: number;
+    tax: number;
+    shipping: number;
+    total: number;
+  } | null>(null);
 
   const subtotal = cart.reduce(
     (sum, item) => sum + Number(item.price) * item.quantity,
@@ -75,6 +84,23 @@ export default function CartPage() {
 
     setIsProcessing(true);
     try {
+      // Store current cart items and totals before they're cleared
+      const orderItems = cart.map((item) => ({
+        book_id: item.book_id,
+        title: item.title,
+        author: item.author,
+        quantity: item.quantity,
+        price: item.price,
+      }));
+
+      const orderSummary = {
+        items: orderItems,
+        subtotal,
+        tax,
+        shipping,
+        total,
+      };
+
       const orderResponse = await fetch("http://localhost:6001/orders", {
         method: "POST",
         headers: {
@@ -110,6 +136,9 @@ export default function CartPage() {
         alert(error.error || "Payment failed");
         return;
       }
+
+      // Set the completed order details
+      setCompletedOrder(orderSummary);
 
       // Refresh cart to reflect it's been cleared during order creation
       await refreshCart();
@@ -229,156 +258,150 @@ export default function CartPage() {
 
             {cart.length > 0 && (
               <div className="lg:col-span-1">
-                <h2 className="text-xl font-semibold text-[#342117] mb-4">
-                  Payment Details
-                </h2>
-
                 {showPaymentForm ? (
-                  <form
-                    className="space-y-4"
-                    onSubmit={(e) => {
-                      e.preventDefault();
-                      handlePayment();
-                    }}
-                  >
-                    <div>
-                      <label className="block text-sm font-medium text-[#342117] mb-1">
-                        Card Number
-                      </label>
-                      <input
-                        type="text"
-                        name="cardNumber"
-                        value={paymentDetails.cardNumber}
-                        onChange={handleInputChange}
-                        placeholder="1234 5678 9012 3456"
-                        className="w-full px-4 py-2 border border-[#eadcca]/60 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#342117]/20"
-                        required
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-[#342117] mb-1">
-                        Card Holder Name
-                      </label>
-                      <input
-                        type="text"
-                        name="cardHolder"
-                        value={paymentDetails.cardHolder}
-                        onChange={handleInputChange}
-                        placeholder="John Doe"
-                        className="w-full px-4 py-2 border border-[#eadcca]/60 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#342117]/20"
-                        required
-                      />
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-[#342117] mb-1">
-                          Expiry Date
-                        </label>
-                        <input
-                          type="text"
-                          name="expiryDate"
-                          value={paymentDetails.expiryDate}
-                          onChange={handleInputChange}
-                          placeholder="MM/YY"
-                          className="w-full px-4 py-2 border border-[#eadcca]/60 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#342117]/20"
-                          required
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-[#342117] mb-1">
-                          CVV
-                        </label>
-                        <input
-                          type="text"
-                          name="cvv"
-                          value={paymentDetails.cvv}
-                          onChange={handleInputChange}
-                          placeholder="123"
-                          className="w-full px-4 py-2 border border-[#eadcca]/60 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#342117]/20"
-                          required
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-[#342117] mb-1">
-                        Billing Address
-                      </label>
-                      <input
-                        type="text"
-                        name="billingAddress"
-                        value={paymentDetails.billingAddress}
-                        onChange={handleInputChange}
-                        placeholder="123 Main Street"
-                        className="w-full px-4 py-2 border border-[#eadcca]/60 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#342117]/20"
-                        required
-                      />
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-[#342117] mb-1">
-                          City
-                        </label>
-                        <input
-                          type="text"
-                          name="city"
-                          value={paymentDetails.city}
-                          onChange={handleInputChange}
-                          placeholder="New York"
-                          className="w-full px-4 py-2 border border-[#eadcca]/60 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#342117]/20"
-                          required
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-[#342117] mb-1">
-                          ZIP Code
-                        </label>
-                        <input
-                          type="text"
-                          name="zipCode"
-                          value={paymentDetails.zipCode}
-                          onChange={handleInputChange}
-                          placeholder="10001"
-                          className="w-full px-4 py-2 border border-[#eadcca]/60 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#342117]/20"
-                          required
-                        />
-                      </div>
-                    </div>
-
-                    <button
-                      type="submit"
-                      disabled={isProcessing}
-                      className="w-full mt-6 px-6 py-3 bg-[#342117] text-white font-semibold rounded-lg hover:bg-[#4a2f1f] transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                  <>
+                    <h2 className="text-xl font-semibold text-[#342117] mb-4">
+                      Payment Details
+                    </h2>
+                    <form
+                      className="space-y-4"
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        handlePayment();
+                      }}
                     >
-                      {isProcessing
-                        ? "Processing..."
-                        : `Pay €${total.toFixed(2)}`}
-                    </button>
-                  </form>
-                ) : (
-                  <div className="p-6 border border-[#eadcca]/60 rounded-lg bg-green-50 text-center">
-                    <p className="text-green-700 font-semibold">
-                      Payment Successful!
-                    </p>
-                    <p className="text-sm text-green-600 mt-2">
-                      Thank you for your order.
-                    </p>
-                    {orderId && (
-                      <p className="text-sm text-green-600 mt-1">
-                        Order ID: #{orderId}
-                      </p>
-                    )}
-                    <Link
-                      href="/"
-                      className="inline-block mt-4 px-4 py-2 bg-[#342117] text-white rounded-lg hover:bg-[#4a2f1f]"
-                    >
-                      Continue Shopping
-                    </Link>
-                  </div>
-                )}
+                      <div>
+                        <label className="block text-sm font-medium text-[#342117] mb-1">
+                          Card Number
+                        </label>
+                        <input
+                          type="text"
+                          name="cardNumber"
+                          value={paymentDetails.cardNumber}
+                          onChange={handleInputChange}
+                          placeholder="1234 5678 9012 3456"
+                          className="w-full px-4 py-2 border border-[#eadcca]/60 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#342117]/20"
+                          required
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-[#342117] mb-1">
+                          Card Holder Name
+                        </label>
+                        <input
+                          type="text"
+                          name="cardHolder"
+                          value={paymentDetails.cardHolder}
+                          onChange={handleInputChange}
+                          placeholder="John Doe"
+                          className="w-full px-4 py-2 border border-[#eadcca]/60 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#342117]/20"
+                          required
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-[#342117] mb-1">
+                            Expiry Date
+                          </label>
+                          <input
+                            type="text"
+                            name="expiryDate"
+                            value={paymentDetails.expiryDate}
+                            onChange={handleInputChange}
+                            placeholder="MM/YY"
+                            className="w-full px-4 py-2 border border-[#eadcca]/60 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#342117]/20"
+                            required
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-[#342117] mb-1">
+                            CVV
+                          </label>
+                          <input
+                            type="text"
+                            name="cvv"
+                            value={paymentDetails.cvv}
+                            onChange={handleInputChange}
+                            placeholder="123"
+                            className="w-full px-4 py-2 border border-[#eadcca]/60 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#342117]/20"
+                            required
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-[#342117] mb-1">
+                          Billing Address
+                        </label>
+                        <input
+                          type="text"
+                          name="billingAddress"
+                          value={paymentDetails.billingAddress}
+                          onChange={handleInputChange}
+                          placeholder="123 Main Street"
+                          className="w-full px-4 py-2 border border-[#eadcca]/60 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#342117]/20"
+                          required
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-[#342117] mb-1">
+                            City
+                          </label>
+                          <input
+                            type="text"
+                            name="city"
+                            value={paymentDetails.city}
+                            onChange={handleInputChange}
+                            placeholder="New York"
+                            className="w-full px-4 py-2 border border-[#eadcca]/60 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#342117]/20"
+                            required
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-[#342117] mb-1">
+                            ZIP Code
+                          </label>
+                          <input
+                            type="text"
+                            name="zipCode"
+                            value={paymentDetails.zipCode}
+                            onChange={handleInputChange}
+                            placeholder="10001"
+                            className="w-full px-4 py-2 border border-[#eadcca]/60 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#342117]/20"
+                            required
+                          />
+                        </div>
+                      </div>
+
+                      <button
+                        type="submit"
+                        disabled={isProcessing}
+                        className="w-full mt-6 px-6 py-3 bg-[#342117] text-white font-semibold rounded-lg hover:bg-[#4a2f1f] transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {isProcessing
+                          ? "Processing..."
+                          : `Pay €${total.toFixed(2)}`}
+                      </button>
+                    </form>
+                  </>
+                ) : null}
+              </div>
+            )}
+
+            {!showPaymentForm && orderId && completedOrder && (
+              <div className="lg:col-span-3">
+                <OrderConfirmation
+                  orderId={orderId}
+                  items={completedOrder.items}
+                  subtotal={completedOrder.subtotal}
+                  tax={completedOrder.tax}
+                  shipping={completedOrder.shipping}
+                  total={completedOrder.total}
+                />
               </div>
             )}
           </div>
