@@ -1,9 +1,14 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
-import { Header } from "../components/Header";
+import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import { HeaderWithAuth } from "../components/HeaderWithAuth";
+import { SearchAndFilters } from "../components/SearchAndFilters";
+import { useCart } from "../context/CartContext";
 import headerData from "../../src/content/header.json";
 import footerData from "../../src/content/footer.json";
-import { FALLBACK_BOOKS, type Book } from "../../src/data/books";
 
 type DBBook = {
   id: number;
@@ -15,7 +20,19 @@ type DBBook = {
   stock_qty: number;
 };
 
-async function fetchBookById(id: string): Promise<Book | null> {
+type BookWithStock = {
+  id: number;
+  title: string;
+  author: string;
+  price: string;
+  genre: string;
+  cover: string;
+  description: string;
+  stock_qty: number;
+  badge?: string;
+};
+
+async function fetchBookById(id: string): Promise<BookWithStock | null> {
   try {
     const response = await fetch(`http://localhost:6001/books/${id}`, {
       cache: "no-store",
@@ -39,6 +56,7 @@ async function fetchBookById(id: string): Promise<Book | null> {
       cover:
         "https://images.unsplash.com/photo-1512820790803-83ca734da794?auto=format&fit=crop&w=420&q=80",
       description: dbBook.description,
+      stock_qty: dbBook.stock_qty,
     };
   } catch (error) {
     console.error("Error fetching book:", error);
@@ -46,16 +64,96 @@ async function fetchBookById(id: string): Promise<Book | null> {
   }
 }
 
-export default async function BookPage({ params }: { params: any }) {
-  const resolvedParams = await params;
-  const bookId = resolvedParams.bookPage;
-  const book = await fetchBookById(bookId);
+export default function BookPage({ params }: { params: any }) {
+  const router = useRouter();
+  const { addToCart } = useCart();
+  const [book, setBook] = useState<BookWithStock | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [quantity, setQuantity] = useState(1);
+  const [bookId, setBookId] = useState<string>("");
+  const [availableGenres, setAvailableGenres] = useState<string[]>([]);
+
+  useEffect(() => {
+    const loadBook = async () => {
+      const resolvedParams = await params;
+      const id = resolvedParams.bookPage;
+      setBookId(id);
+      const fetchedBook = await fetchBookById(id);
+      setBook(fetchedBook);
+      setLoading(false);
+    };
+    loadBook();
+
+    // Fetch available genres
+    const loadGenres = async () => {
+      try {
+        const response = await fetch("http://localhost:6001/genres");
+        if (response.ok) {
+          const data = await response.json();
+          setAvailableGenres(data.genres || []);
+        }
+      } catch (error) {
+        console.error("Error fetching genres:", error);
+      }
+    };
+    loadGenres();
+  }, [params]);
+
+  const handleSearch = (query: string) => {
+    // Redirect to home page with search query
+    router.push(`/?search=${encodeURIComponent(query)}`);
+  };
+
+  const handleFilterByGenre = (genres: string[]) => {
+    // Redirect to home page with genre filters
+    if (genres.length > 0) {
+      router.push(`/?genres=${encodeURIComponent(genres.join(","))}`);
+    } else {
+      router.push("/");
+    }
+  };
+
+  const handleAddToCart = async () => {
+    if (!book) return;
+    await addToCart(Number(book.id), quantity);
+  };
+
+  const handleBuyNow = async () => {
+    if (!book) return;
+    await addToCart(Number(book.id), quantity);
+    router.push("/cart");
+  };
+
+  const incrementQuantity = () => {
+    if (book && quantity < book.stock_qty) {
+      setQuantity(quantity + 1);
+    }
+  };
+
+  const decrementQuantity = () => {
+    if (quantity > 1) {
+      setQuantity(quantity - 1);
+    }
+  };
+
+  if (loading) {
+    return (
+      <main className="min-h-screen px-4 py-12 sm:px-8 lg:px-10">
+        <div className="mx-auto max-w-3xl rounded-2xl bg-white/90 p-8">
+          <HeaderWithAuth navItems={headerData.navItems} />
+          <div className="py-12 text-center">
+            <p className="text-sm text-[#7a6455]">Loading...</p>
+          </div>
+        </div>
+      </main>
+    );
+  }
 
   if (!book) {
     return (
       <main className="min-h-screen px-4 py-12 sm:px-8 lg:px-10">
         <div className="mx-auto max-w-3xl rounded-2xl bg-white/90 p-8">
-          <Header navItems={headerData.navItems} />
+          <HeaderWithAuth navItems={headerData.navItems} />
           <div className="py-12 text-center">
             <h2 className="text-2xl font-semibold">Book not found</h2>
             <p className="mt-4 text-sm text-[#7a6455]">
@@ -73,9 +171,11 @@ export default async function BookPage({ params }: { params: any }) {
   return (
     <main className="min-h-screen bg-transparent px-4 py-10 sm:px-8 lg:px-10">
       <div className="mx-auto flex w-full max-w-4xl flex-col gap-8 rounded-3xl border border-[#eadcca]/80 bg-white/90 p-6 backdrop-blur-sm sm:p-10">
-        <Header
-          navItems={headerData.navItems}
-        
+        <HeaderWithAuth navItems={headerData.navItems} />
+        <SearchAndFilters
+          onSearch={handleSearch}
+          onFilterByGenre={handleFilterByGenre}
+          availableGenres={availableGenres}
         />
 
         <section className="grid gap-6 md:grid-cols-2">
@@ -104,10 +204,29 @@ export default async function BookPage({ params }: { params: any }) {
                   {book.description}
                 </p>
               ) : null}
+
+              <div className="mt-6 flex items-center gap-2">
+                <span className="text-sm font-medium text-[#342117]">
+                  Stock:
+                </span>
+                <span
+                  className={`text-sm font-semibold ${
+                    book.stock_qty > 10
+                      ? "text-green-600"
+                      : book.stock_qty > 0
+                      ? "text-yellow-600"
+                      : "text-red-600"
+                  }`}
+                >
+                  {book.stock_qty > 0
+                    ? `${book.stock_qty} available`
+                    : "Out of stock"}
+                </span>
+              </div>
             </div>
 
-            <div className="flex items-center justify-between">
-              <div>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
                 <span className="text-2xl font-semibold text-[#3d2618]">
                   {book.price}
                 </span>
@@ -118,16 +237,52 @@ export default async function BookPage({ params }: { params: any }) {
                 ) : null}
               </div>
 
-              <div className="flex gap-3">
+              <div className="flex items-center gap-3">
+                <span className="text-sm font-medium text-[#342117]">
+                  Quantity:
+                </span>
+                <div className="flex items-center gap-2 rounded-lg border border-[#dacbbd] bg-white">
+                  <button
+                    onClick={decrementQuantity}
+                    disabled={quantity <= 1}
+                    className="px-3 py-2 text-[#342117] hover:bg-[#f5ede4] disabled:opacity-50 disabled:cursor-not-allowed transition rounded-l-lg"
+                  >
+                    −
+                  </button>
+                  <span className="px-4 text-sm font-medium text-[#342117] min-w-8 text-center">
+                    {quantity}
+                  </span>
+                  <button
+                    onClick={incrementQuantity}
+                    disabled={quantity >= book.stock_qty}
+                    className="px-3 py-2 text-[#342117] hover:bg-[#f5ede4] disabled:opacity-50 disabled:cursor-not-allowed transition rounded-r-lg"
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <button
+                  onClick={handleAddToCart}
+                  disabled={book.stock_qty === 0}
+                  className="w-full rounded-full border-2 border-[#342117] bg-white px-6 py-3 text-sm font-semibold uppercase tracking-[0.25em] text-[#342117] transition hover:bg-[#342117] hover:text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Add to Cart
+                </button>
+                <button
+                  onClick={handleBuyNow}
+                  disabled={book.stock_qty === 0}
+                  className="w-full rounded-full bg-[#342117] px-6 py-3 text-sm font-semibold uppercase tracking-[0.25em] text-white transition hover:bg-[#4a2f1f] disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Buy Now
+                </button>
                 <Link
                   href="/"
-                  className="rounded-full border border-[#dfcdbb] px-4 py-2 text-xs font-semibold uppercase tracking-[0.25em] text-[#6a4e33]"
+                  className="w-full text-center rounded-full border border-[#dfcdbb] px-6 py-3 text-xs font-semibold uppercase tracking-[0.25em] text-[#6a4e33] hover:bg-[#f5ede4] transition"
                 >
                   Back
                 </Link>
-                <button className="rounded-full bg-[#8a5c40] px-4 py-2 text-xs font-semibold uppercase tracking-[0.25em] text-white">
-                  Buy
-                </button>
               </div>
             </div>
           </div>

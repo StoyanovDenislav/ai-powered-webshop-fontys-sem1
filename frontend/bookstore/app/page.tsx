@@ -1,6 +1,5 @@
 import Image from "next/image";
-import { Header } from "./components/Header";
-import { BookList } from "./components/BookList";
+import { HomeContent } from "./components/HomeContent";
 import headerData from "../src/content/header.json";
 import footerData from "../src/content/footer.json";
 import { FALLBACK_BOOKS, type Book } from "../src/data/books";
@@ -77,23 +76,11 @@ export default async function Home() {
   return (
     <main className="min-h-screen bg-transparent px-4 py-10 sm:px-8 lg:px-10">
       <div className="cards-shadow mx-auto flex w-full max-w-6xl flex-col gap-10 rounded-4xl border border-[#eadcca]/80 bg-white/90 p-6 backdrop-blur-sm sm:p-10">
-        <Header navItems={navItems} />
-        <section className="space-y-6">
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <div>
-              <p className="text-xs uppercase tracking-[0.35em] text-[#b6a28f]">
-                Trending shelves
-              </p>
-              <h2 className="text-2xl font-semibold text-[#352013]">
-                Autumn arrivals & gilded spines
-              </h2>
-            </div>
-            <button className="text-sm font-medium text-[#8a5c40] hover:text-[#5c3c27]">
-              View library →
-            </button>
-          </div>
-          <BookList initialBooks={books} genreFilters={availableGenres} />
-        </section>
+        <HomeContent
+          initialBooks={books}
+          availableGenres={availableGenres}
+          navItems={navItems}
+        />
         <Footer footerData={footerData} />
       </div>
     </main>
