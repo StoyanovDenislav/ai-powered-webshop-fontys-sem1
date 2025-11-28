@@ -1,10 +1,9 @@
 import type { SVGProps } from "react";
 type HeaderProps = {
   navItems: string[];
-  primaryFilters: string[];
 };
 
-export function Header({ navItems, primaryFilters }: HeaderProps) {
+export function Header({ navItems }: HeaderProps) {
   return (
     <header className="space-y-6 border-b border-[#efe4d8] pb-8">
       <div className="flex flex-wrap items-center justify-between gap-4">
@@ -12,7 +11,7 @@ export function Header({ navItems, primaryFilters }: HeaderProps) {
           <LogoBadge />
           <div>
             <p className="text-xs uppercase tracking-[0.45em] text-[#b3a28f]">
-              Book Market
+              Book Markets
             </p>
             <p className="text-xl font-semibold text-[#3d2618]">
               A curated shelf for curious minds
@@ -20,8 +19,7 @@ export function Header({ navItems, primaryFilters }: HeaderProps) {
           </div>
         </div>
         <button className="flex items-center gap-2 rounded-full border border-[#dacbbd] bg-white/60 px-4 py-2 text-sm font-medium text-[#4e3a2b] transition hover:bg-[#f2e6da]">
-          <IconCart className="h-4 w-4 text-[#b07b50]" />
-          4 items
+          <IconCart className="h-4 w-4 text-[#b07b50]" />4 items
         </button>
       </div>
       <nav className="flex flex-wrap gap-3 text-sm font-medium text-[#6f5a4d]">
@@ -53,16 +51,6 @@ export function Header({ navItems, primaryFilters }: HeaderProps) {
           </button>
         </div>
       </div>
-      <div className="flex flex-wrap gap-2 text-xs font-medium text-[#6b594c]">
-        {primaryFilters.map((filter) => (
-          <span
-            key={filter}
-            className="rounded-full border border-[#eadccc] bg-white/80 px-4 py-1 capitalize shadow-sm"
-          >
-            {filter}
-          </span>
-        ))}
-      </div>
     </header>
   );
 }
@@ -77,9 +65,7 @@ function LogoBadge() {
         <span className="text-sm uppercase tracking-[0.55em] text-[#b18a6d]">
           book
         </span>
-        <span className="text-2xl font-semibold text-[#402315]">
-          Market
-        </span>
+        <span className="text-2xl font-semibold text-[#402315]">Market</span>
       </div>
     </div>
   );
@@ -143,4 +129,3 @@ function IconMenu(props: SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
-

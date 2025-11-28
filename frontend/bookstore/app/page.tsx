@@ -1,5 +1,6 @@
 import Image from "next/image";
 import { Header } from "./components/Header";
+import { BookList } from "./components/BookList";
 import headerData from "../src/content/header.json";
 import footerData from "../src/content/footer.json";
 import { FALLBACK_BOOKS, type Book } from "../src/data/books";
@@ -9,15 +10,74 @@ type FooterData = {
   links: { label: string; href: string }[];
 };
 
-// Book data is shared from `src/data/books`
+type DBBook = {
+  id: number;
+  title: string;
+  author: string;
+  description: string;
+  price: number;
+  genres: string[];
+  stock_qty: number;
+};
 
-export default function Home() {
-  const books = FALLBACK_BOOKS;
-  const { navItems, primaryFilters, genreFilters } = headerData;
+async function fetchBooks(): Promise<Book[]> {
+  try {
+    const response = await fetch("http://localhost:6001/books", {
+      cache: "no-store",
+    });
+
+    if (!response.ok) {
+      throw new Error("Failed to fetch books");
+    }
+
+    const data = await response.json();
+    const dbBooks: DBBook[] = data.books || [];
+
+    // Transform DB books to match the Book type
+    return dbBooks.map((book) => ({
+      id: book.id,
+      title: book.title,
+      author: book.author,
+      price: `€${Number(book.price).toFixed(2)}`,
+      genre: book.genres?.[0] || "General",
+      cover:
+        "https://images.unsplash.com/photo-1512820790803-83ca734da794?auto=format&fit=crop&w=420&q=80",
+      description: book.description,
+    }));
+  } catch (error) {
+    console.error("Error fetching books:", error);
+    return FALLBACK_BOOKS;
+  }
+}
+
+async function fetchGenres(): Promise<string[]> {
+  try {
+    const response = await fetch("http://localhost:6001/genres", {
+      cache: "no-store",
+    });
+
+    if (!response.ok) {
+      throw new Error("Failed to fetch genres");
+    }
+
+    const data = await response.json();
+    return data.genres || [];
+  } catch (error) {
+    console.error("Error fetching genres:", error);
+    return headerData.genreFilters;
+  }
+}
+
+// Book data is fetched from the backend
+
+export default async function Home() {
+  const books = await fetchBooks();
+  const availableGenres = await fetchGenres();
+  const { navItems } = headerData;
   return (
     <main className="min-h-screen bg-transparent px-4 py-10 sm:px-8 lg:px-10">
       <div className="cards-shadow mx-auto flex w-full max-w-6xl flex-col gap-10 rounded-4xl border border-[#eadcca]/80 bg-white/90 p-6 backdrop-blur-sm sm:p-10">
-        <Header navItems={navItems} primaryFilters={primaryFilters} />
+        <Header navItems={navItems} />
         <section className="space-y-6">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
@@ -32,21 +92,7 @@ export default function Home() {
               View library →
             </button>
           </div>
-          <div className="flex flex-wrap gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-[#a49081]">
-            {genreFilters.map((genre) => (
-              <button
-                key={genre}
-                className="rounded-full border border-[#eadccc] bg-white/60 px-4 py-1 hover:border-[#cda780] hover:bg-[#fff7ee] hover:text-[#6a442c]"
-              >
-                {genre}
-              </button>
-            ))}
-          </div>
-          <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
-            {books.map((book) => (
-              <BookCard key={book.id} book={book} />
-            ))}
-          </div>
+          <BookList initialBooks={books} genreFilters={availableGenres} />
         </section>
         <Footer footerData={footerData} />
       </div>
@@ -54,52 +100,17 @@ export default function Home() {
   );
 }
 
-function BookCard({ book }: { book: Book }) {
-  return (
-    <article className="flex flex-col gap-4 rounded-2xl border border-[#efe4d8] bg-white/90 p-4 shadow-[0_20px_45px_rgba(49,29,4,0.05)] transition hover:-translate-y-1.5 hover:shadow-[0_25px_60px_rgba(49,29,4,0.08)]">
-      <div className="relative overflow-hidden rounded-2xl bg-[#f5ede4]">
-        <Image
-          src={book.cover}
-          alt={`${book.title} cover`}
-          width={320}
-          height={420}
-          className="h-64 w-full object-cover"
-        />
-        {book.badge ? (
-          <span className="absolute left-3 top-3 rounded-full bg-[#3d2618]/90 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-white">
-            {book.badge}
-          </span>
-        ) : null}
-      </div>
-      <div className="space-y-1">
-        <p className="text-xs uppercase tracking-[0.3em] text-[#b7a597]">
-          {book.genre}
-        </p>
-        <h3 className="text-lg font-semibold text-[#342117]">{book.title}</h3>
-        <p className="text-sm text-[#7a6455]">{book.author}</p>
-        {book.description ? (
-          <p className="text-xs text-[#9a887a] line-clamp-2">{book.description}</p>
-        ) : null}
-      </div>
-      <div className="flex items-center justify-between">
-        <span className="text-base font-semibold text-[#3d2618]">
-          {book.price}
-        </span>
-        <button className="rounded-full border border-[#dfcdbb] px-4 py-2 text-xs font-semibold uppercase tracking-[0.25em] text-[#6a4e33] transition hover:border-[#b07b50] hover:text-[#40260f]">
-          Open
-        </button>
-      </div>
-    </article>
-  );
-}
-
 function Footer({ footerData }: { footerData: FooterData }) {
   return (
     <footer className="flex flex-col items-center gap-2 border-t border-[#efe4d8] pt-8 text-center text-sm text-[#6a5a4c] sm:flex-row sm:justify-between">
-      <p>© {new Date().getFullYear()} {footerData.rights}</p>
+      <p>
+        © {new Date().getFullYear()} {footerData.rights}
+      </p>
       <div className="flex gap-4 text-xs uppercase tracking-[0.4em] text-[#a38773]">
         {footerData.links.map((link) => (
-          <a key={link.label} href={link.href}>{link.label}</a>
+          <a key={link.label} href={link.href}>
+            {link.label}
+          </a>
         ))}
       </div>
     </footer>
