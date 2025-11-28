@@ -133,7 +133,9 @@ export function OrderConfirmation({
           </li>
           <li className="flex items-start">
             <span className="mr-2">•</span>
-            <span>Your order will be processed and shipped within 2-3 business days</span>
+            <span>
+              Your order will be processed and shipped within 2-3 business days
+            </span>
           </li>
           <li className="flex items-start">
             <span className="mr-2">•</span>
